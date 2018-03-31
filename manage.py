@@ -4,11 +4,11 @@ import xmltodict
 from flask import Flask, request
 import hashlib
 
-WECHAT_TOKEN = 'itheima'
+WECHAT_TOKEN = 'itcast'
 
 app = Flask(__name__)
 
-@app.route('/wechatsz8008',methods=['GET','POST'])
+@app.route('/wechat8008',methods=['GET','POST'])
 def index():
     # signature：微信加密签名
     signature = request.args.get('signature')
@@ -58,26 +58,86 @@ def index():
                  # 发送xml字符串给微信服务器，然后服务器转到到粉丝
                  return response_xml_str
 
-            elif msg_type=='voice':
-                # 说明用户发送的文本消息
+
+            elif msg_type == 'voice':
+
+                # 此时的需求：接受到语音后，转成文字，再会给粉丝
+
+                # 收到语音消息
+
+                recognition_str = request_dict.get('Recognition')
+
+                # 准备回复的内容字典
+
                 new_dict = {
+
                     'ToUserName': request_dict.get('FromUserName'),
+
                     'FromUserName': request_dict.get('ToUserName'),
+
                     'CreateTime': time.time(),
+
                     'MsgType': 'text',
-                    'Content': u'谢谢诶'
+
+                    'Content': recognition_str
+
                 }
 
-                print request_dict.get('Content')
-                # 封装响应的字典
+                print recognition_str
+
+                # 封装总的字典
+
                 response_dict = {'xml': new_dict}
 
-                # 将响应的字典转成xml字符串
+                # 将字典转成xml
+
                 response_xml_str = xmltodict.unparse(response_dict)
-                # 发送xml字符串给微信服务器，然后服务器转到到粉丝
+
+                # 将我们服务器的消息转给微信服务器，微信服务器再转给粉丝
+
                 return response_xml_str
-            else:
-                return echostr  # 告诉微信服务器。我给你的IP是OK的
+
+
+            elif msg_type == 'event':
+
+                # 获取是关注还是取消关注
+
+                event = request_dict.get('Event')
+
+                if event == 'subscribe':
+
+                    # 准备回复的内容字典
+
+                    new_dict = {
+
+                        'ToUserName': request_dict.get('FromUserName'),
+
+                        'FromUserName': request_dict.get('ToUserName'),
+
+                        'CreateTime': time.time(),
+
+                        'MsgType': 'text',
+
+                        'Content': u'我是隔壁老王，谢谢关注'
+
+                    }
+
+                    event_key = request_dict.get('EventKey')
+
+                    if event_key:
+                        print u'你关注的是%s号推广人员的二维码' % event_key
+
+                    # 封装总的字典
+
+                    response_dict = {'xml': new_dict}
+
+                    # 将字典转成xml
+
+                    response_xml_str = xmltodict.unparse(response_dict)
+
+                    # 将我们服务器的消息转给微信服务器，微信服务器再转给粉丝
+
+                    return response_xml_str
 
     return ''  # 告诉微信服务不可用
 
